@@ -5,7 +5,7 @@ This project features a data-driven **Power BI Dashboard** paired with business 
 
 This project demonstrates business intelligence and data engineering skills tailored directly for modern container logistics, freight forwarding, and terminal operations—highly relevant for the fast-paced Hamburg logistics hub.
 
-## 📊 Key Insights & Business Value Delivered
+##  Key Insights & Business Value Delivered
 1. **Demurrage & Cost Control:** Tracked and aggregated **€43,875** (€43.88K) in total demurrage penalties, segmenting financial risk across distinct cargo categories.
 2. **Bottleneck Identification:** Pinpointed that **Chemicals** account for the highest penalty fees (**€10,275**), signaling potential delays in hazardous material customs clearing.
 3. **Carrier Performance Benchmarking:** Identified **CMA CGM** as the slowest carrier with an average port dwell time of **3.00 days**, compared to the fleet average of **2.42 days**, enabling data-backed carrier negotiations.
