@@ -1,5 +1,6 @@
 # Hamburg Port Dwell Time Analysis
 Container dwell time, carrier performance and demurrage costs at the Port of Hamburg, analysed with PostgreSQL and Power BI.
+[Dashboard preview](screenshots/dashboard.png)
 
 ---
 
