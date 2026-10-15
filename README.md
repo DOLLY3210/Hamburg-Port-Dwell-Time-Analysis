@@ -81,7 +81,7 @@ Cutting the free period to 2 days would roughly double the fees. This is an uppe
 | **Excel** | Data cleaning, date formatting, formula checks |
 | **Power BI** | Interactive dashboard with KPIs, carrier filter and charts |
 
-**Skills shown:** data cleaning, data validation, KPI design, business analysis, scenario modeling, data visualization, clear communication of results.
+**Skills used:** data cleaning, data validation, KPI design, business analysis, scenario modeling, data visualization, clear communication of results.
 
 ---
 
