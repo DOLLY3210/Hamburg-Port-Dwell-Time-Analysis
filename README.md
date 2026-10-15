@@ -1,156 +1,161 @@
 # Hamburg Port Dwell Time Analysis
-Container dwell time, carrier performance and demurrage costs at the Port of Hamburg, analysed with PostgreSQL and Power BI.
-[Dashboard preview](screenshots/Dashboard_overview.png)
----
 
-## Project Overview
+**Where do container demurrage fees come from, and what can be done about them?**
 
-When a container stays at the port longer than its free time, the importer pays demurrage fees. These fees cost money, and long stays also block space at the terminal.
+An end-to-end data analysis project using **SQL (PostgreSQL)**, **Excel** and **Power BI**. I analyze how long 1,490 containers stayed at the Port of Hamburg and which carriers and cargo types drive the demurrage fees.
 
-In this project I analysed **1,500 containers** from **5 carriers** to answer simple but important questions: How long do containers stay at the port? Which carrier is the slowest? How much money is lost to late fees? When is the port busiest?
-
-I used **PostgreSQL** to calculate the numbers and **Power BI** to show them in an easy-to-read dashboard.
-
-This project is built for container logistics, freight forwarding and terminal operations, which are key areas of the Hamburg port economy.
+![Hamburg Port Dashboard](dashboard/dashboard_preview.png)
 
 ---
 
-## Business Questions and Answers
+## Business Problem
 
-| # | Business Question | Answer |
-|---|---|---|
-| 1 | How many containers are there in total? | **1,500** |
-| 2 | How many days does a container stay at the port before pickup? | **2.42 days** on average |
-| 3 | Which carrier has the highest average dwell time? | **CMA CGM** with **3.00 days** |
-| 4 | How much is spent on late fees (3-day free limit)? | **€43,875** |
-| 5 | How many containers arrive each month? | Peak in **March** with **385 arrivals** |
+When a container stays at the port longer than the free period (here: 3 days), the customer pays a daily **demurrage fee**. These fees are a real cost for shippers and an important number for port operations.
 
----
+This project answers simple but important questions:
 
-## Key Findings
-
-- **Late fees add up.** Containers that stayed longer than 3 days created **€43,875** in demurrage fees.
-- **Chemicals cost the most.** This cargo type had the highest fees (**€10,275**). One possible reason is slower customs clearance for dangerous goods, but the data alone cannot confirm this.
-- **CMA CGM is the slowest carrier.** Its containers stay **3.00 days** on average, compared with **2.42 days** for all carriers together. This is useful information for carrier discussions.
-- **March is the busiest month**, with **385 arrivals**. The port can plan staff and equipment ahead of busy periods like this.
+- How long do containers stay at the port?
+- Which carriers are slowest?
+- Which cargo types cost the most, and is that because of **high rates** or **late pickups**?
+- What would happen to fees if the free period changed?
 
 ---
 
-## Tools Used
+## Key Results
 
-- **PostgreSQL:** data storage and KPI queries
-- **Power BI Desktop:** dashboard and visuals
-- **DAX measures:** `COUNT` for total containers, `AVERAGE` for dwell days at port, and `SUM` for total demurrage fees
-- **Data cleaning:** removed empty values and excluded incomplete months so the monthly trend is fair
-
----
-
-## Dashboard
-
-The dashboard has four parts:
-
-1. **KPI cards:** total demurrage fees (€), average dwell time (days), total containers and peak monthly volume
-2. **Cargo chart:** demurrage fees for Chemicals, Electronics, Automotive, Retail and Perishables
-3. **Carrier table:** each carrier with its container count and average days at port
-4. **Monthly trend:** a line chart of container arrivals per month
+| KPI | Value |
+|---|---|
+| Total containers | 1,490 |
+| Total demurrage fees | € 53,860 |
+| Average dwell time | 2.43 days |
+| Containers picked up late | 20.1 % |
 
 ---
 
-## SQL Queries
+## Key Insights
 
-All queries are also saved in [`sql/Hamburg_port_queries.sql`](sql/Hamburg_port_queries.sql).
+**1. Fees come from a minority of late containers.**
+The average container is collected in 2.43 days, inside the 3-day free period. Only about 1 in 5 containers is late, and these create all the fees. That small group is where action should focus.
 
-**1. Create the table**
-```sql
-CREATE TABLE Hamburg_port (
-    container_id        VARCHAR(50),
-    carrier             VARCHAR(100),
-    cargo_type          VARCHAR(100),
-    arrival_date        DATE,
-    pickup_date         DATE,
-    free_days_allowed   INT,
-    daily_demurrage_fee INT
-);
-```
+**2. CMA CGM is the slowest carrier.**
+CMA CGM averages 2.98 days, right at the 3-day limit, compared to 2.24 days for MSC. All carriers handle a similar volume (279 to 311 containers), so volume does not explain the difference.
 
-**2. Total number of containers**
-```sql
-SELECT COUNT(container_id) AS total_containers
-FROM Hamburg_port;
-```
+**3. Chemicals are the biggest cost driver, and the problem is delay.**
+Chemicals create 28 % of all fees. They combine a high daily rate (€ 110) with the highest late share (23 %). This is an **operational problem** that can be improved, for example by checking customs or document delays.
 
-**3. Average dwell time (days at port)**
-```sql
-SELECT ROUND(AVG(pickup_date - arrival_date), 2) AS average_days_at_port
-FROM Hamburg_port;
-```
+**4. Perishables are expensive because of the tariff, not delay.**
+Perishables have the highest daily rate (€ 125) but the *best* pickup rate (only 16 % late). Their cost is a **pricing effect**. Faster pickup would not change much here.
 
-**4. Dwell time by carrier**
-```sql
-SELECT carrier,
-       COUNT(container_id) AS total_containers,
-       ROUND(AVG(pickup_date - arrival_date), 1) AS average_days_at_port
-FROM Hamburg_port
-GROUP BY carrier
-ORDER BY average_days_at_port DESC;
-```
+**5. More volume did not mean more delay.**
+March had the most arrivals (385) but the fewest late containers (17.1 %). April was the weakest month (23.4 % late).
 
-**5. Demurrage fees by cargo type** (3 free days, then €75 per extra day)
-```sql
-SELECT cargo_type,
-       SUM(CASE
-             WHEN (pickup_date - arrival_date) > 3
-             THEN ((pickup_date - arrival_date) - 3) * 75
-             ELSE 0
-           END) AS total_penalty_fees_in_euros
-FROM Hamburg_port
-GROUP BY cargo_type
-ORDER BY total_penalty_fees_in_euros DESC;
-```
+**6. The free period has a big impact on fees.**
 
-**6. Arrivals per month (peak traffic)**
-```sql
-SELECT DATE_TRUNC('month', arrival_date) AS arrival_month,
-       COUNT(container_id) AS total_arrivals
-FROM Hamburg_port
-GROUP BY DATE_TRUNC('month', arrival_date)
-ORDER BY arrival_month ASC;
-```
+| Free period | Total fees |
+|---|---|
+| 2 days | € 105,105 |
+| **3 days (current)** | **€ 53,860** |
+| 4 days | € 26,250 |
+| 5 days | € 12,660 |
+
+Cutting the free period to 2 days would roughly double the fees. This is an upper limit, because customers would likely pick up faster.
 
 ---
 
-## Repository Structure
+## Recommendations
+
+1. **Investigate Chemicals first.** It is the largest cost driver and the problem is fixable. Check whether containers are waiting on customs clearance or paperwork.
+2. **Talk to CMA CGM.** Its average sits right at the free-period limit. First check whether its cargo mix explains the difference.
+3. **Don't target Perishables for faster pickup.** Their cost comes from the rate, not from delay.
+
+---
+
+## Tools and Skills
+
+| Tool | What I used it for |
+|---|---|
+| **PostgreSQL** | Data loading, aggregation, `CASE WHEN` logic, subqueries, scenario analysis |
+| **Excel** | Data cleaning, date formatting, formula checks |
+| **Power BI** | Interactive dashboard with KPIs, carrier filter and charts |
+
+**Skills shown:** data cleaning, data validation, KPI design, business analysis, scenario modeling, data visualization, clear communication of results.
+
+---
+
+## Data Quality Check
+
+Before using any numbers, I checked whether the stored fees were correct. I recalculated every fee from the daily rate and the days over the free period:
+
+| | Amount |
+|---|---|
+| Fee stored in the data | € 53,860 |
+| Fee recalculated | € 53,860 |
+
+The two match exactly, so the data is reliable for reporting.
+
+I also fixed a date problem: the source file uses **DD/MM/YYYY** dates. Without setting the date order before loading, the months load incorrectly.
+
+---
+
+## Project Structure
 
 ```
-Hamburg-Port-Dwell-Time-Analysis/
-├── data/          Dataset (CSV file)
-├── docs/          Business questions document
-├── powerbi/       Power BI dashboard file (.pbix)
-├── screenshots/   Images of the dashboard and queries
-├── sql/           PostgreSQL queries
-└── README.md
+hamburg-port-dwell-time-analysis/
+│
+├── README.md
+├── data/
+│   ├── hamburg_port_container_data.csv
+│   └── hamburg_port_container_data.xlsx
+├── sql/
+│   └── dwell_time_analysis_queries.sql
+├── dashboard/
+│   ├── hamburg_port_dashboard.pbix
+│   └── dashboard_preview.png
+└── docs/
+    └── business_questions_and_insights.docx
 ```
----
-
-## How to Use This Project
-
-1. Download the CSV file from the `data` folder.
-2. Create the table and import the CSV into PostgreSQL (see the SQL file).
-3. Run the queries to get the KPIs.
-4. Open the `.pbix` file in Power BI Desktop to explore the dashboard.
 
 ---
 
-## About the Data
+## Dataset
 
-This is a practice dataset created for learning purposes. It is not real Port of Hamburg data.
-The dataset has 1,500 containers with carrier, cargo type, arrival date, pickup date, free days and daily demurrage fee.
+| Column | Description |
+|---|---|
+| `container_id` | Unique container number |
+| `carrier` | Shipping line (Maersk, MSC, Hapag-Lloyd, CMA CGM, ONE) |
+| `cargo_type` | Chemicals, Perishables, Automotive, Electronics, Retail |
+| `arrival_date` | Date the container arrived at the port |
+| `pickup_date` | Date the container was picked up |
+| `actual_delivery_days` | Days the container stayed at the port |
+| `free_days_allowed` | Free period before fees start (3 days) |
+| `daily_demurrage_fee` | Fee per day after the free period (€) |
+| `actual_demurrage_fee` | Total fee charged (€) |
+
+**Period:** January to April 2026 · **Size:** 1,490 rows
 
 ---
 
-## About Me
+## Limitations
 
-I am **DOLLY**, a data analyst interested in logistics and supply chain analytics. I enjoy turning raw data into clear answers that help businesses make better decisions.
+- The dataset is **synthetic (AI-generated)**. It shows the analysis method, not real Port of Hamburg data.
+- The same 3-day free period is used for all containers. In real life it differs by carrier, cargo and contract.
+- Differences between groups are not statistically tested.
+- The data shows *where* fees come from, not *why*. The causes above are ideas to check with operational data.
 
-- GitHub: [DOLLY3210](https://github.com/DOLLY3210)
-  
+---
+
+## How to Run
+
+1. Create a PostgreSQL database.
+2. Open `sql/dwell_time_analysis_queries.sql` and run the table setup.
+3. Import `data/hamburg_port_container_data.csv` into the `hamburg_port` table.
+4. Run the queries. The expected result is shown under each query.
+5. Open `dashboard/hamburg_port_dashboard.pbix` in Power BI Desktop to explore the dashboard.
+
+---
+
+## Contact
+
+**[Your Name]**
+Data Analyst · [Your City], Germany
+[LinkedIn](https://linkedin.com/in/your-profile) · [Email](mailto:your.email@example.com)
