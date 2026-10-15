@@ -160,4 +160,6 @@ hamburg-port-dwell-time-analysis/
 ## Contact
 
 **Dolly**  ·
-Data Analyst · [hamburg], Germany [Email](dollykhanna3210@gmail.com)
+Data Analyst ·
+[hamburg], Germany
+[Email](dollykhanna3210@gmail.com)
