@@ -105,17 +105,17 @@ I also fixed a date problem: the source file uses **DD/MM/YYYY** dates. Without 
 ```
 hamburg-port-dwell-time-analysis/
 │
-├── README.md
-├── data/
-│   ├── hamburg_port_container_data.csv
-│   └── hamburg_port_container_data.xlsx
-├── sql/
-│   └── dwell_time_analysis_queries.sql
 ├── dashboard/
 │   ├── hamburg_port_dashboard.pbix
 │   └── dashboard_preview.png
-└── docs/
-    └── business_questions_and_insights.docx
+├── data/
+│   ├── hamburg_port_container_data.csv
+│   └── hamburg_port_container_data.xlsx
+├── docs/
+│   └── business_questions_and_insights.docx
+├── sql/
+│   └── dwell_time_analysis_queries.sql
+└── README.md
 ```
 
 ---
@@ -159,6 +159,6 @@ hamburg-port-dwell-time-analysis/
 
 ## Contact
 
-**Dolly**
+**Dolly**  ·
 Data Analyst · [hamburg], Germany
 [Email](dollykhanna3210@gmail.com)
