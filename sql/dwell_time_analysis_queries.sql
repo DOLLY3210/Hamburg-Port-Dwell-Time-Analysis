@@ -93,9 +93,9 @@ from hamburg_port;
 
 select actual_delivery_days,
        count(*) as containers,
-       round(100.0 * count(*) / sum(count(*)) over (), 2) as pct_containers,
+       round(100.0 * count(*) / (select count(*) from hamburg_port), 2) as pct_containers,
        sum(actual_demurrage_fee) as total_demurrage_fee,
-       round(100.0 * sum(actual_demurrage_fee) / sum(sum(actual_demurrage_fee)) over (), 2) as pct_fees
+       round(100.0 * sum(actual_demurrage_fee) / (select sum(actual_demurrage_fee) from hamburg_port), 2) as pct_fees
 from hamburg_port
 group by actual_delivery_days
 order by actual_delivery_days;
