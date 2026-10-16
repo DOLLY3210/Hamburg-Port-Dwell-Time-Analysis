@@ -1,5 +1,7 @@
 -- =============================================================
+-- =============================================================
 -- Hamburg Port Dwell Time Analysis
+-- File: dwell_time_analysis_queries.sql
 -- SQL queries (PostgreSQL)
 --
 -- Dataset: 1,490 containers | 5 carriers | 5 cargo types
@@ -26,6 +28,13 @@ CREATE TABLE hamburg_port (
     daily_demurrage_fee   INT,
     actual_demurrage_fee  INT
 );
+
+
+-- Load the CSV (change the path to where you saved the file)
+COPY hamburg_port
+FROM 'C:/path/to/hamburg_port_container_data.csv'
+DELIMITER ','
+CSV HEADER;
 
 
 -- -------------------------------------------------------------
@@ -55,6 +64,78 @@ from hamburg_port;
 --                  2.43
 --
 -- The free period is 3 days, so the average container is collected in time.
+
+
+-- -------------------------------------------------------------
+-- 2b. Finding the containers that cause the fees
+-- -------------------------------------------------------------
+-- The average is below the 3-day free period, so it hides the late
+-- containers. Three steps narrow down where the fees really come from.
+
+-- Step 1: average, median and 90% pickup time
+-- days_for_90pct_pickup = 90% of containers are picked up within this many days
+
+select round(avg(actual_delivery_days), 2) as average_days_at_port,
+       percentile_cont(0.5) within group (order by actual_delivery_days) as median_days,
+       percentile_cont(0.9) within group (order by actual_delivery_days) as days_for_90pct_pickup
+from hamburg_port;
+
+-- Result:
+--  average_days_at_port | median_days | days_for_90pct_pickup
+-- ----------------------+-------------+-----------------------
+--                  2.43 |           2 |                     4
+--
+-- The median (2) is below the average (2.43), so a small group of long
+-- stays pulls the average up. 90% of containers are picked up within
+-- 4 days; only 10% stay longer.
+
+-- Step 2: containers and fees per number of days
+
+select actual_delivery_days,
+       count(*) as containers,
+       round(100.0 * count(*) / sum(count(*)) over (), 2) as pct_containers,
+       sum(actual_demurrage_fee) as total_demurrage_fee,
+       round(100.0 * sum(actual_demurrage_fee) / sum(sum(actual_demurrage_fee)) over (), 2) as pct_fees
+from hamburg_port
+group by actual_delivery_days
+order by actual_delivery_days;
+
+-- Result:
+--  actual_delivery_days | containers | pct_containers | total_demurrage_fee | pct_fees
+-- ----------------------+------------+----------------+---------------------+----------
+--                     1 |        506 |          33.96 |                   0 |     0.00
+--                     2 |        427 |          28.66 |                   0 |     0.00
+--                     3 |        258 |          17.32 |                   0 |     0.00
+--                     4 |        151 |          10.13 |               14020 |    26.03
+--                     5 |         81 |           5.44 |               14900 |    27.66
+--                     6 |         37 |           2.48 |                9405 |    17.46
+--                     7 |         10 |           0.67 |                5000 |     9.28
+--                     8 |         10 |           0.67 |                4375 |     8.12
+--                    10 |         10 |           0.67 |                6160 |    11.44
+--
+-- 80% of containers are collected within the free period and pay nothing.
+-- Containers staying 6+ days are only 4.5% of the total but create 46% of
+-- all fees.
+
+-- Step 3: list the long-stay containers (6+ days)
+
+select container_id, carrier, cargo_type, actual_delivery_days, actual_demurrage_fee
+from hamburg_port
+where actual_delivery_days >= 6
+order by actual_delivery_days desc, actual_demurrage_fee desc;
+
+-- Result: 67 rows, 24,940 EUR in fees. First 5 rows:
+--  container_id | carrier | cargo_type  | actual_delivery_days | actual_demurrage_fee
+-- --------------+---------+-------------+----------------------+---------------------
+--  CMXU8558197  | CMA CGM | Chemicals   |                   10 |                  770
+--  CMXU7227905  | CMA CGM | Chemicals   |                   10 |                  770
+--  CMXU7987842  | CMA CGM | Chemicals   |                   10 |                  770
+--  CMXU9036805  | CMA CGM | Automotive  |                   10 |                  595
+--  CMXU5093379  | CMA CGM | Electronics |                   10 |                  560
+--
+-- 43 of the 67 long-stay containers belong to CMA CGM (64%). The cargo
+-- types are spread evenly (10 to 15 each), so the long stays are linked
+-- to the carrier, not to the cargo.
 
 
 -- -------------------------------------------------------------
@@ -165,13 +246,13 @@ select cargo_type,
                 else 0 end) as total_over_days,
        sum(actual_demurrage_fee) as total_demurrage_fee,
        round(100.0 * sum(actual_demurrage_fee)
-             / (select sum(actual_demurrage_fee) from hamburg_port), 1) as fee_share_pct
+             / (select sum(actual_demurrage_fee) from hamburg_port), 1) as pct_fees
 from hamburg_port
 group by cargo_type
 order by total_demurrage_fee desc;
 
 -- Result:
---  cargo_type  | daily_demurrage_rate | containers | late_pct | total_over_days | total_demurrage_fee | fee_share_pct
+--  cargo_type  | daily_demurrage_rate | containers | late_pct | total_over_days | total_demurrage_fee | pct_fees
 -- -------------+----------------------+------------+----------+-----------------+---------------------+---------------
 --  Chemicals   |                  110 |        296 |     23.0 |             137 |               15070 |          28.0
 --  Perishables |                  125 |        313 |     16.0 |              92 |               11500 |          21.4
