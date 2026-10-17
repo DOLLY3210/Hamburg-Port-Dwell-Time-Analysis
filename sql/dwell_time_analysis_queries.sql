@@ -1,5 +1,4 @@
 -- =============================================================
--- =============================================================
 -- Hamburg Port Dwell Time Analysis
 -- File: dwell_time_analysis_queries.sql
 -- SQL queries (PostgreSQL)
