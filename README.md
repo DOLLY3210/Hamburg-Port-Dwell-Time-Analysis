@@ -4,8 +4,6 @@
 
 An end-to-end data analysis project using **SQL (PostgreSQL)**, **Excel** and **Power BI**. I analyze how long 1,490 containers stayed at the Port of Hamburg and which carriers and cargo types drive the demurrage fees.
 
-> [!NOTE]
-> **Disclaimer:** The dataset in this project is **synthetic and AI-generated**. It does not contain real data from the Port of Hamburg or from any shipping company. Carrier names are used only to make the scenario realistic. All numbers and findings demonstrate the analysis method and should not be read as facts about real port operations or real carriers.
 
 ![Hamburg Port Dashboard](dashboard/dashboard_preview.png)
 
